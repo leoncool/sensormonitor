@@ -5,9 +5,14 @@ import gnu.io.SerialPortEventListener;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Map;
 
 public class SerialTest implements SerialPortEventListener {
 	SerialPort serialPort;
@@ -16,7 +21,7 @@ public class SerialTest implements SerialPortEventListener {
 																				// OS
 																				// X
 			"/dev/ttyUSB0", // Linux
-			"COM9", // Windows
+			"COM7", // Windows
 	};
 	/** Buffered input stream from the port */
 	private InputStream input;
@@ -79,16 +84,19 @@ public class SerialTest implements SerialPortEventListener {
 			serialPort.close();
 		}
 	}
-
-	Hashtable<Date, String> tempList = new Hashtable<Date, String>();
-	Hashtable<Date, String> lightList = new Hashtable<Date, String>();
+//
+//	Hashtable<Date, String> tempList = new Hashtable<Date, String>();
+//	Hashtable<Date, String> lightList = new Hashtable<Date, String>();
+	LinkedList<DataWrap> tempList = new LinkedList<DataWrap>();
+	LinkedList<DataWrap> lightList = new LinkedList<DataWrap>();
+	LinkedList<DataWrap> humidityList = new LinkedList<DataWrap>();
 	/**
 	 * Handle an event on the serial port. Read the data and print it.
 	 */
 	public synchronized void serialEvent(SerialPortEvent oEvent) {
 		if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
 			try {
-				if (input.available() > 15) {
+				if (input.available() > 20) {
 					int available = input.available();
 					byte chunk[] = new byte[available];
 					input.read(chunk, 0, available);
@@ -97,8 +105,8 @@ public class SerialTest implements SerialPortEventListener {
 					String data = new String(chunk);
 
 					// System.out.println(data);
-					Hashtable<Date, String> tempList = new Hashtable<Date, String>();
-					Hashtable<Date, String> lightList = new Hashtable<Date, String>();
+				
+					
 					for (int i = 0; i < data.length(); i++) {
 						if (data.charAt(i) == '<' && (i + 1) < data.length()
 								&& data.charAt(i + 1) == 'T') {
@@ -109,10 +117,10 @@ public class SerialTest implements SerialPortEventListener {
 								if (data.charAt(j) != '>'
 										&& data.charAt(j) != 'T'
 										&& data.charAt(j) != 'L'
+										&& data.charAt(j) != 'H'
 										&& data.charAt(j) != '<') {
 									tempStr = tempStr + data.charAt(j);
-								
-									tempList.put(new Date(), tempStr);
+	
 								} else if (data.charAt(j) == '>') {
 									valid = true;
 									break;
@@ -122,6 +130,8 @@ public class SerialTest implements SerialPortEventListener {
 							}
 							if (valid) {
 								System.out.println("templerate:" + tempStr);
+								DataWrap data_wrap=new DataWrap(new Date(), tempStr);
+								tempList.push(data_wrap);
 							}
 						} else if (data.charAt(i) == '<'
 								&& (i + 1) < data.length()
@@ -133,6 +143,7 @@ public class SerialTest implements SerialPortEventListener {
 								if (data.charAt(j) != '>'
 										&& data.charAt(j) != 'T'
 										&& data.charAt(j) != 'L'
+										&& data.charAt(j) != 'H'
 										&& data.charAt(j) != '<') {
 									lightStr = lightStr + data.charAt(j);
 
@@ -146,17 +157,54 @@ public class SerialTest implements SerialPortEventListener {
 							if (valid) {
 								System.out.println("light:" + lightStr);
 
-								lightList.put(new Date(), lightStr);
+								DataWrap data_wrap=new DataWrap(new Date(), lightStr);
+								lightList.push(data_wrap);
+							}
+						} else if (data.charAt(i) == '<'
+								&& (i + 1) < data.length()
+								&& data.charAt(i + 1) == 'H') {
+							String humidityStr = "";
+							boolean valid = false;
+							int j = (i + 2);
+							for (; j < data.length(); j++) {
+								if (data.charAt(j) != '>'
+										&& data.charAt(j) != 'T'
+										&& data.charAt(j) != 'L'
+										&& data.charAt(j) != 'H'
+										&& data.charAt(j) != '<') {
+									humidityStr = humidityStr + data.charAt(j);
+
+								} else if (data.charAt(j) == '>') {
+									valid = true;
+									break;
+								} else {
+									continue;
+								}
+							}
+							if (valid) {
+								System.out.println("Humidity:" + humidityStr);
+
+								DataWrap data_wrap=new DataWrap(new Date(), humidityStr);
+								humidityList.push(data_wrap);
 							}
 						}
 					}
 
 				}
 
-				if(lightList.size()>10||tempList.size()>10)
-				{
-					
+				if (tempList.size() > 10) {
+					TestSendDatapoints testsend=new TestSendDatapoints();
+					testsend.PostData("feb6f678-a518-4d57-b0c3-f8ae34e22354", tempList);
 				}
+				if (humidityList.size() > 10) {
+					TestSendDatapoints testsend=new TestSendDatapoints();
+					testsend.PostData("2dec377f-7555-49aa-90fc-a631a7e60af5", humidityList);
+				}
+				if (lightList.size() > 10) {
+					TestSendDatapoints testsend=new TestSendDatapoints();
+					testsend.PostData("ea5d843d-9fe8-409b-ad85-90c05066742b", lightList);
+				}
+				
 			} catch (Exception e) {
 				System.err.println(e.toString());
 			}

@@ -1,16 +1,33 @@
 
+#include "DHT.h"
+
+#define DHTPIN 2     // what pin we're connected to
+
+// Uncomment whatever type you're using!
+#define DHTTYPE DHT11   // DHT 11 
+//#define DHTTYPE DHT22   // DHT 22  (AM2302)
+//#define DHTTYPE DHT21   // DHT 21 (AM2301)
+
+// Connect pin 1 (on the left) of the sensor to +5V
+// Connect pin 2 of the sensor to whatever your DHTPIN is
+// Connect pin 4 (on the right) of the sensor to GROUND
+// Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
+
+DHT dht(DHTPIN, DHTTYPE);
 const int sensorPin=A0;
 int photoRPin = A1; 
 int minLight;
 int maxLight;
 int lightLevel;
 int adjustedLightLevel;
-void setup(){
 
- Serial.begin(9600);
-  lightLevel=analogRead(photoRPin);
+void setup() {
+  Serial.begin(9600); 
+  Serial.println("DHTxx test!");
+   lightLevel=analogRead(photoRPin);
   minLight=lightLevel-20;
   maxLight=lightLevel;
+  dht.begin();
 }
 void writeLight(float val)
 {
@@ -21,7 +38,10 @@ void writeTemperature(float val)
 {
   writeField('T', val);
 }
-
+void writeHumidity(float val)
+{
+  writeField('H', val);
+}
 void writeField(char ID, float val)
 {
   Serial.print('<'); // start byte 
@@ -29,19 +49,18 @@ void writeField(char ID, float val)
   Serial.print (val);
   Serial.print(">");   // stop byte
 }
-void loop()
-{
-        int sensorVal=analogRead(sensorPin);
-   
-        float votage=(sensorVal/1024.0)*5.0;
-    
-          float temp=(votage-.5)*100;
-  
-      writeTemperature(temp);
-//        Serial.print("t=");
-//        Serial.print(temp);
-  //Serial.write(",");
-  
+void loop() {
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  // check if returns are valid, if they are NaN (not a number) then something went wrong!
+  if (isnan(t) || isnan(h)) {
+    //Serial.println("Failed to read from DHT");
+  } else {
+          writeTemperature(t);
+           writeHumidity(h);
    lightLevel=analogRead(photoRPin);
    if(minLight>lightLevel){
      minLight=lightLevel;
@@ -49,27 +68,14 @@ void loop()
    if(maxLight<lightLevel){
      maxLight=lightLevel;
    }
-   
-   //Adjust the light level to produce a result between 0 and 100.
-   adjustedLightLevel = map(lightLevel, minLight, maxLight, 0, 100); 
-   
-   //Send the adjusted Light level result to Serial port (processing)
-//   Serial.print("l=");
-//   Serial.print(adjustedLightLevel);
-//   Serial.print(",");
-    writeLight(adjustedLightLevel);
-        delay(500);
-   
-       
-      //digitalWrite(7,LOW);
-      
- // if(switchState==LOW)
-  //{
-     // digitalWrite(5,HIGH);
-      //digitalWrite(7,LOW);
- // }
- // else{
-   // digitalWrite(5,LOW);
-    //digitalWrite(7,HIGH);
- // }
+     adjustedLightLevel = map(lightLevel, minLight, maxLight, 0, 100); 
+      writeLight(adjustedLightLevel);
+//    Serial.print("Humidity: "); 
+//    Serial.print(h);
+//    Serial.print(" %\t");
+//    Serial.print("Temperature: "); 
+//    Serial.print(t);
+//    Serial.println(" *C");
+  }
+    delay(5000);
 }
