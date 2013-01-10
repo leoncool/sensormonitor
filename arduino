@@ -1,0 +1,75 @@
+
+const int sensorPin=A0;
+int photoRPin = A1; 
+int minLight;
+int maxLight;
+int lightLevel;
+int adjustedLightLevel;
+void setup(){
+
+ Serial.begin(9600);
+  lightLevel=analogRead(photoRPin);
+  minLight=lightLevel-20;
+  maxLight=lightLevel;
+}
+void writeLight(float val)
+{
+  writeField('L', val);
+}
+
+void writeTemperature(float val)
+{
+  writeField('T', val);
+}
+
+void writeField(char ID, float val)
+{
+  Serial.print('<'); // start byte 
+  Serial.print(ID); 
+  Serial.print (val);
+  Serial.print(">");   // stop byte
+}
+void loop()
+{
+        int sensorVal=analogRead(sensorPin);
+   
+        float votage=(sensorVal/1024.0)*5.0;
+    
+          float temp=(votage-.5)*100;
+  
+      writeTemperature(temp);
+//        Serial.print("t=");
+//        Serial.print(temp);
+  //Serial.write(",");
+  
+   lightLevel=analogRead(photoRPin);
+   if(minLight>lightLevel){
+     minLight=lightLevel;
+   }
+   if(maxLight<lightLevel){
+     maxLight=lightLevel;
+   }
+   
+   //Adjust the light level to produce a result between 0 and 100.
+   adjustedLightLevel = map(lightLevel, minLight, maxLight, 0, 100); 
+   
+   //Send the adjusted Light level result to Serial port (processing)
+//   Serial.print("l=");
+//   Serial.print(adjustedLightLevel);
+//   Serial.print(",");
+    writeLight(adjustedLightLevel);
+        delay(500);
+   
+       
+      //digitalWrite(7,LOW);
+      
+ // if(switchState==LOW)
+  //{
+     // digitalWrite(5,HIGH);
+      //digitalWrite(7,LOW);
+ // }
+ // else{
+   // digitalWrite(5,LOW);
+    //digitalWrite(7,HIGH);
+ // }
+}
