@@ -21,7 +21,7 @@ public class SerialTest implements SerialPortEventListener {
 																				// OS
 																				// X
 			"/dev/ttyUSB0", // Linux
-			"COM7", // Windows
+			"COM4", // Windows
 	};
 	/** Buffered input stream from the port */
 	private InputStream input;
